@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Braille Auto-Correct System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Braille Auto-Correct System</h1>
+    <p class="subtitle">Type in QWERTY Braille format and get real-time suggestions</p>
+    <div class="main-grid">
+        <div class="left-panel">
+            <div class="input-section">
+                <h2>Braille Input</h2>
+                <p class="desc">Type Braille patterns using the keyboard mapping shown on the right</p>
+                <form method="post" id="braille-form" autocomplete="off">
+                    <input type="text" id="braille_input" name="braille_input" value="{{ user_input }}" placeholder="Start typing..." required autofocus autocomplete="off">
+                    <button type="submit">Suggest</button>
+                </form>
+                <div id="live-suggestions"></div>
+            </div>
+            <div class="dict-section">
+                <h3>Custom Dictionary <span class="file-note">txt file allowed</span></h3>
+                <form id="dict-upload-form" enctype="multipart/form-data">
+                    <input type="file" id="dict-file" accept=".txt">
+                    <button type="button" id="dict-upload-btn">Browse</button>
+                    <span id="dict-status">Using default dictionary (10 words)</span>
+                    <button type="button" id="dict-clear-btn">Clear</button>
+                </form>
+            </div>
+            <div class="viz-section">
+                <h3>Braille Visualization</h3>
+                <div id="braille-viz" class="viz-box">(Coming soon)</div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="kbd-ref">
+                <h2>Keyboard Reference</h2>
+                <p class="desc">QWERTY to Braille mapping</p>
+                <div class="kbd-table">
+                    <div>
+                        <b>Left Hand</b><br>
+                        <kbd>A</kbd> Dot 1 (top-left)<br>
+                        <kbd>D</kbd> Dot 2 (middle-left)<br>
+                        <kbd>S</kbd> Dot 3 (bottom-left)
+                    </div>
+                    <div>
+                        <b>Right Hand</b><br>
+                        <kbd>J</kbd> Dot 4 (top-right)<br>
+                        <kbd>K</kbd> Dot 5 (middle-right)<br>
+                        <kbd>L</kbd> Dot 6 (bottom-right)
+                    </div>
+                </div>
+                <div class="howto">
+                    <b>How to use:</b>
+                    <ul>
+                        <li>Type using the keyboard mapping</li>
+                        <li>Press <kbd>Tab</kbd> to cycle through suggestions</li>
+                        <li>Press <kbd>Enter</kbd> to accept a suggestion</li>
+                        <li>Press <kbd>Ctrl + S</kbd> to read the input text aloud</li>
+                        <li>Click on a suggestion to apply it</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>Made with <span style="color: #e25555;">&#10084;</span> for Braille learners</p>
+    </footer>
+    <script>
+    // Live suggestions
+    const input = document.getElementById('braille_input');
+    const suggestionsDiv = document.getElementById('live-suggestions');
+    input.addEventListener('input', function() {
+        const value = input.value;
+        if (!value) {
+            suggestionsDiv.innerHTML = '';
+            return;
+        }
+        fetch('/suggest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ braille_input: value })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                suggestionsDiv.innerHTML = `<div class='suggestion'>${data.error}</div>`;
+            } else if (data.suggestions && data.suggestions.length > 0) {
+                suggestionsDiv.innerHTML = `<div class='suggestion'>Suggestions: <b>${data.suggestions.join(', ')}</b> (distance: ${data.distance})</div>`;
+            } else {
+                suggestionsDiv.innerHTML = `<div class='suggestion'>No suggestions found.</div>`;
+            }
+        });
+    });
+    // Custom dictionary upload (basic, non-functional placeholder)
+    document.getElementById('dict-upload-btn').onclick = function() {
+        document.getElementById('dict-file').click();
+    };
+    document.getElementById('dict-file').onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('dict-status').textContent = 'Custom dictionary loaded: ' + file.name;
+        }
+    };
+    document.getElementById('dict-clear-btn').onclick = function() {
+        document.getElementById('dict-status').textContent = 'Using default dictionary (10 words)';
+        document.getElementById('dict-file').value = '';
+    };
+    </script>
+</body>
+</html>
