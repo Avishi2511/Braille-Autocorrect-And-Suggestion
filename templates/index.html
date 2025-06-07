@@ -14,19 +14,9 @@
             <div class="input-section">
                 <h2>Braille Input</h2>
                 <p class="desc">Type Braille patterns using the keyboard mapping shown on the right</p>
-                <form method="post" id="braille-form" autocomplete="off">
-                    <input type="text" id="braille_input" name="braille_input" value="{{ user_input }}" placeholder="Start typing..." required autofocus autocomplete="off">
-                    <button type="submit">Suggest</button>
-                </form>
-                <div id="live-suggestions"></div>
-            </div>
-            <div class="dict-section">
-                <h3>Custom Dictionary <span class="file-note">txt file allowed</span></h3>
-                <form id="dict-upload-form" enctype="multipart/form-data">
-                    <input type="file" id="dict-file" accept=".txt">
-                    <button type="button" id="dict-upload-btn">Browse</button>
-                    <span id="dict-status">Using default dictionary (10 words)</span>
-                    <button type="button" id="dict-clear-btn">Clear</button>
+                <form method="post" id="braille-form" autocomplete="off" onsubmit="return false;">
+                    <input type="text" id="braille_input" name="braille_input" value="{{ user_input }}" placeholder="Start typing..." required autofocus autocomplete="off" aria-autocomplete="list" aria-haspopup="listbox">
+                    <div id="suggestion-dropdown" class="dropdown"></div>
                 </form>
             </div>
             <div class="viz-section">
@@ -41,24 +31,23 @@
                 <div class="kbd-table">
                     <div>
                         <b>Left Hand</b><br>
-                        <kbd>A</kbd> Dot 1 (top-left)<br>
-                        <kbd>D</kbd> Dot 2 (middle-left)<br>
-                        <kbd>S</kbd> Dot 3 (bottom-left)
+                        <kbd>D</kbd> Dot 1 (top-left)<br>
+                        <kbd>W</kbd> Dot 2 (middle-left)<br>
+                        <kbd>Q</kbd> Dot 3 (bottom-left)
                     </div>
                     <div>
                         <b>Right Hand</b><br>
-                        <kbd>J</kbd> Dot 4 (top-right)<br>
-                        <kbd>K</kbd> Dot 5 (middle-right)<br>
-                        <kbd>L</kbd> Dot 6 (bottom-right)
+                        <kbd>K</kbd> Dot 4 (top-right)<br>
+                        <kbd>O</kbd> Dot 5 (middle-right)<br>
+                        <kbd>P</kbd> Dot 6 (bottom-right)
                     </div>
                 </div>
                 <div class="howto">
                     <b>How to use:</b>
                     <ul>
                         <li>Type using the keyboard mapping</li>
-                        <li>Press <kbd>Tab</kbd> to cycle through suggestions</li>
+                        <li>Use <kbd>Tab</kbd> or <kbd>↓</kbd>/<kbd>↑</kbd> to cycle through suggestions</li>
                         <li>Press <kbd>Enter</kbd> to accept a suggestion</li>
-                        <li>Press <kbd>Ctrl + S</kbd> to read the input text aloud</li>
                         <li>Click on a suggestion to apply it</li>
                     </ul>
                 </div>
@@ -69,13 +58,29 @@
         <p>Made with <span style="color: #e25555;">&#10084;</span> for Braille learners</p>
     </footer>
     <script>
-    // Live suggestions
     const input = document.getElementById('braille_input');
-    const suggestionsDiv = document.getElementById('live-suggestions');
+    const dropdown = document.getElementById('suggestion-dropdown');
+    let suggestions = [];
+    let selectedIndex = -1;
+
+    function renderDropdown() {
+        if (!suggestions.length) {
+            dropdown.innerHTML = '';
+            dropdown.style.display = 'none';
+            return;
+        }
+        dropdown.innerHTML = '<ul id="suggestion-list" role="listbox">' +
+            suggestions.map((s, i) => `<li role="option" tabindex="-1" class="dropdown-item${i === selectedIndex ? ' selected' : ''}" data-index="${i}">${s}</li>`).join('') +
+            '</ul>';
+        dropdown.style.display = 'block';
+    }
+
     input.addEventListener('input', function() {
         const value = input.value;
+        selectedIndex = -1;
         if (!value) {
-            suggestionsDiv.innerHTML = '';
+            suggestions = [];
+            renderDropdown();
             return;
         }
         fetch('/suggest', {
@@ -85,29 +90,50 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.error) {
-                suggestionsDiv.innerHTML = `<div class='suggestion'>${data.error}</div>`;
-            } else if (data.suggestions && data.suggestions.length > 0) {
-                suggestionsDiv.innerHTML = `<div class='suggestion'>Suggestions: <b>${data.suggestions.join(', ')}</b> (distance: ${data.distance})</div>`;
+            if (data.suggestions && data.suggestions.length > 0) {
+                suggestions = data.suggestions;
             } else {
-                suggestionsDiv.innerHTML = `<div class='suggestion'>No suggestions found.</div>`;
+                suggestions = [];
             }
+            renderDropdown();
         });
     });
-    // Custom dictionary upload (basic, non-functional placeholder)
-    document.getElementById('dict-upload-btn').onclick = function() {
-        document.getElementById('dict-file').click();
-    };
-    document.getElementById('dict-file').onchange = function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            document.getElementById('dict-status').textContent = 'Custom dictionary loaded: ' + file.name;
+
+    input.addEventListener('keydown', function(e) {
+        if (!suggestions.length) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex + 1) % suggestions.length;
+            renderDropdown();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex - 1 + suggestions.length) % suggestions.length;
+            renderDropdown();
+        } else if (e.key === 'Tab') {
+            if (selectedIndex === -1) selectedIndex = 0;
+            renderDropdown();
+            e.preventDefault();
+        } else if (e.key === 'Enter') {
+            if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                input.value = suggestions[selectedIndex];
+                suggestions = [];
+                renderDropdown();
+                input.blur();
+            }
         }
-    };
-    document.getElementById('dict-clear-btn').onclick = function() {
-        document.getElementById('dict-status').textContent = 'Using default dictionary (10 words)';
-        document.getElementById('dict-file').value = '';
-    };
+    });
+
+    dropdown.addEventListener('mousedown', function(e) {
+        if (e.target && e.target.matches('.dropdown-item')) {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            if (!isNaN(idx)) {
+                input.value = suggestions[idx];
+                suggestions = [];
+                renderDropdown();
+                input.blur();
+            }
+        }
+    });
     </script>
 </body>
 </html>

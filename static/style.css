@@ -183,6 +183,50 @@ footer {
 .howto li {
     margin-bottom: 4px;
 }
+.input-section {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+#braille_input {
+    z-index: 2;
+}
+#suggestion-dropdown.dropdown {
+    position: static;
+    margin-top: 0px;
+    margin-bottom: 0.5em;
+    z-index: 1;
+    background: #fff;
+    border: 1.5px solid #e0e0f0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(122,90,248,0.07);
+    max-height: 180px;
+    overflow-y: auto;
+    display: none;
+    width: 100%;
+}
+#suggestion-dropdown ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+#suggestion-dropdown .dropdown-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 1.08em;
+    color: #3a3a5a;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+}
+#suggestion-dropdown .dropdown-item:last-child {
+    border-bottom: none;
+}
+#suggestion-dropdown .dropdown-item.selected,
+#suggestion-dropdown .dropdown-item:hover {
+    background: #f0edff;
+    color: #7a5af8;
+}
 @media (max-width: 900px) {
     .main-grid {
         flex-direction: column;
