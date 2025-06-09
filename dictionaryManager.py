@@ -1,5 +1,5 @@
 """
-Dictionary Manager Module
+Dictionary Manager
 Handles dictionary storage and provides closest word suggestion based on Braille pattern.
 """
 
@@ -25,22 +25,15 @@ class DictionaryManager:
             self._word_patterns_cache[word] = self.converter.text_to_braille_patterns(word)
         return self._word_patterns_cache[word]
 
-    def suggest_closest_word(self, input_pattern: List[Tuple[int, ...]]) -> str:
-        """
-        Suggest the closest word from the dictionary based on Braille pattern,
-        efficiently handling typos and missing/extra inputs using Levenshtein distance.
-        Returns the first alphabetically if multiple matches.
-        """
+    def suggest_closest_words(self, input_pattern: List[Tuple[int, ...]]) -> list:
         from distanceCalculator import DistanceCalculator
         distance_calc = DistanceCalculator()
         candidates = sorted(self.dictionary)  # Sort alphabetically for consistency
         candidate_patterns = [self.get_word_patterns(word) for word in candidates]
-        # Use Levenshtein distance (already handles insertions, deletions, substitutions)
         distances = distance_calc.batch_distances(input_pattern, candidate_patterns)
         min_distance = min(distances)
         best_indices = [i for i, d in enumerate(distances) if d == min_distance]
-        # Return the first alphabetically among the best matches
-        return candidates[best_indices[0]]
+        return [candidates[i] for i in best_indices]
 
 
 # Example usage and testing
@@ -55,8 +48,7 @@ def test_dictionary_manager():
 
     print(f"Added {len(sample_words)} words to dictionary")
     print(f"Dictionary size: {len(manager.dictionary)}")
-
-    # Test getting Braille patterns
+    
     for word in sample_words:
         patterns = manager.get_word_patterns(word)
         print(f"Braille patterns for '{word}': {patterns}")

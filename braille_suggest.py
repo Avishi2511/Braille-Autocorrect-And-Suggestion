@@ -2,13 +2,12 @@ from brailleConverter import BrailleConverter
 from dictionaryManager import DictionaryManager
 from distanceCalculator import DistanceCalculator
 
-# Initialize components
 converter = BrailleConverter()
 dictionary = DictionaryManager()
 distance_calc = DistanceCalculator()
 
-# Load a sample dictionary (you can change this to load from a file)
-sample_words = ['hello', 'world', 'braille', 'typing', 'test', 'help', 'word', 'python', 'code', 'dot']
+with open("dictionary.txt", "r", encoding="utf-8") as f:
+    sample_words = [line.strip() for line in f if line.strip()]
 dictionary.add_words(sample_words)
 
 print("Braille QWERTY Auto-correct & Suggestion System")
@@ -25,7 +24,7 @@ while True:
     candidates = list(dictionary.dictionary)
     candidate_patterns = [dictionary.get_word_patterns(word) for word in candidates]
     distances = distance_calc.batch_distances(input_patterns, candidate_patterns)
-    # Get best match (lowest distance)
+    
     min_distance = min(distances)
     best_indices = [i for i, d in enumerate(distances) if d == min_distance]
     suggestions = [candidates[i] for i in best_indices]
